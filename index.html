@@ -162,6 +162,35 @@ section{padding:80px 0}
 .chip:hover{background:var(--verde);color:#fff;border-color:var(--verde);transform:translateY(-2px)}
 .chip:hover svg{opacity:1;transform:translateX(0)}
 
+/* conteúdo, carrossel de artigos puxado ao vivo de app.locuscompras.com.br/api/conteudo */
+.conteudo-preview{background:var(--creme)}
+.conteudo-preview .cabecalho-secao{display:flex;align-items:flex-end;justify-content:space-between;
+  gap:24px;flex-wrap:wrap;margin-bottom:32px}
+.conteudo-preview h2{font-size:clamp(22px,2.4vw,28px);font-weight:700;letter-spacing:-.015em;
+  margin:0;max-width:28ch}
+.link-secao{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;
+  color:var(--verde);text-decoration:none;white-space:nowrap;transition:gap .18s ease}
+.link-secao:hover{gap:12px}
+.carrossel{display:flex;gap:18px;overflow-x:auto;scroll-snap-type:x proximity;
+  padding-bottom:6px;margin:0 -24px;padding-left:24px;padding-right:24px}
+.carrossel::-webkit-scrollbar{height:6px}
+.carrossel::-webkit-scrollbar-thumb{background:var(--verde-claro);border-radius:100px}
+.carrossel-cartao{scroll-snap-align:start;flex:0 0 300px;background:#fff;
+  border:1px solid var(--linha);border-radius:16px;padding:24px;text-decoration:none;
+  color:inherit;display:flex;flex-direction:column;transition:border-color .18s,transform .18s}
+.carrossel-cartao:hover{border-color:var(--verde-claro);transform:translateY(-2px)}
+.carrossel-marcador{font-family:var(--mono);font-size:10.5px;font-weight:700;
+  letter-spacing:.06em;color:var(--verde);text-transform:uppercase;margin-bottom:12px}
+.carrossel-cartao h3{font-size:15.5px;font-weight:700;color:var(--navy);margin:0 0 8px;
+  line-height:1.35}
+.carrossel-cartao p{font-size:13.5px;color:var(--chumbo);line-height:1.55;margin:0;flex:1}
+.carrossel-cartao .carrossel-data{font-family:var(--mono);font-size:11.5px;color:var(--chumbo);
+  margin-top:16px}
+.conteudo-preview.vazia{display:none}
+@media (max-width:640px){
+  .carrossel-cartao{flex-basis:78vw}
+}
+
 .cta-final{position:relative;background:var(--verde);color:#fff;text-align:center;overflow:hidden}
 .cta-final::before{content:"";position:absolute;inset:0;pointer-events:none;
   background-image:radial-gradient(rgba(244,245,243,.5) 1.3px, transparent 1.3px);
@@ -325,6 +354,22 @@ footer .envolve{position:relative;padding:56px 24px 32px}
   </div>
 </section>
 
+<section class="conteudo-preview vazia" id="secao-conteudo">
+  <div class="envolve">
+    <div class="cabecalho-secao rev">
+      <div>
+        <p class="rotulo">Conteúdo</p>
+        <h2>Doutrina de compra inteligente, direto da Lócus</h2>
+      </div>
+      <a class="link-secao" href="https://app.locuscompras.com.br/conteudo" target="_blank" rel="noopener">
+        Ver todo o conteúdo
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+    </div>
+    <div class="carrossel rev" id="carrossel-conteudo"></div>
+  </div>
+</section>
+
 <section class="cta-final">
   <div class="envolve">
     <p class="rotulo claro rev">Primeiro passo</p>
@@ -405,6 +450,59 @@ footer .envolve{position:relative;padding:56px 24px 32px}
   } else {
     alvos.forEach(function(el){ el.classList.add('mostrar'); });
   }
+})();
+
+/* Carrossel de conteúdo: puxa ao vivo de app.locuscompras.com.br/api/conteudo, nunca
+   hardcoded aqui, senão desatualiza a cada artigo novo publicado. Seção começa escondida
+   (.vazia) e só aparece se a chamada trouxer algo, para nunca mostrar um carrossel quebrado
+   ou vazio se a API cair. */
+(function(){
+  var ROTULO = { ARTIGO: 'Doutrina Lócus', NOTICIA: 'Notícia do setor' };
+
+  function formatarData(iso){
+    var d = new Date(iso);
+    var dd = String(d.getUTCDate()).padStart(2, '0');
+    var mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+    return dd + '/' + mm + '/' + d.getUTCFullYear();
+  }
+
+  fetch('https://app.locuscompras.com.br/api/conteudo')
+    .then(function(resp){ return resp.ok ? resp.json() : { itens: [] }; })
+    .then(function(dados){
+      var itens = (dados && dados.itens) || [];
+      if(itens.length === 0) return;
+
+      var carrossel = document.getElementById('carrossel-conteudo');
+      itens.forEach(function(item){
+        var cartao = document.createElement('a');
+        cartao.className = 'carrossel-cartao';
+        cartao.href = 'https://app.locuscompras.com.br/conteudo/' + item.slug;
+        cartao.target = '_blank';
+        cartao.rel = 'noopener';
+
+        var marcador = document.createElement('span');
+        marcador.className = 'carrossel-marcador';
+        marcador.textContent = ROTULO[item.tipo] || item.tipo;
+
+        var titulo = document.createElement('h3');
+        titulo.textContent = item.titulo;
+
+        var resumo = document.createElement('p');
+        resumo.textContent = item.resumo;
+
+        var data = document.createElement('span');
+        data.className = 'carrossel-data';
+        data.textContent = formatarData(item.publicadoEm);
+
+        cartao.append(marcador, titulo, resumo, data);
+        carrossel.appendChild(cartao);
+      });
+
+      var secao = document.getElementById('secao-conteudo');
+      secao.classList.remove('vazia');
+      secao.querySelectorAll('.rev').forEach(function(el){ el.classList.add('mostrar'); });
+    })
+    .catch(function(){ /* API fora do ar: seção continua escondida, resto da página segue normal */ });
 })();
 </script>
 
